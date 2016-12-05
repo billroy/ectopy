@@ -37,8 +37,8 @@ The steps in this section only need to be done once:
 4. Connect sensor to Arduino
     This is best done with the Arduino powered off
     - black wire to Ground (GND)
-    - red wire to +5 Volts (+5)
-    - sense wire to analog input pin 0 (A0)
+    - red wire to +5 Volts (+5 or VCC); 3.3 Volts (+3.3 or VCC) also works
+    - purple sense wire to analog input pin 0 (A0)
 
 5. Test Sensor
     Put the sensor on your finger with the Arduino powered on,
@@ -67,10 +67,17 @@ Running the program
 
 2. Open a browser to see the application
     Open a browser to http://localhost:3000
+    You should see the application start up with a blank chart
 
 3. Put the sensor on your finger and adjust until it's producing pulses
     I find it helps to have a pulse-ox on another finger to make sure
     the beats are correct
+
+4. When you have "good contact", press the Clear button to start a
+fresh chart; this also marks the beat log so you can re-use the data.
+
+5. After 100 beats or so, you might want to Mark the chart with a
+comment for the log, and capture a screenshot.
 
 ---
 About the display
@@ -97,7 +104,7 @@ beat and the previous one.
 Using Ectopy
 
 - put the sensor on and fiddle it until the data stream looks good
-- click the 'clear' button to start a new chart
+- click the "clear" button to start a new chart
 - accumulate 100 beats or so
 - use "mark" to add a comment to identify the chart
 - take a screenshot
@@ -110,3 +117,14 @@ the ectopy directory, for future analysis.
 
 In the More... menu, the Import and Export functions let you import and export
 beat sessions in text format.
+
+---
+Hardware Outputs
+
+The software provides a flash on pin 13 at each beat.
+
+The software provides a brief tone at each beat on pin 11 suitable for
+playing through a piezo buzzer connected to ground via 330 ohms.
+
+There are timing outputs on pins 4 and 12 that will only be of interest
+to developers.
