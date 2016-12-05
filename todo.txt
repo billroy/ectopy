@@ -1,0 +1,37 @@
+TODO ectopy.js
+
+
+move the analytics onto the plot so it saves/prints
+add a legend for the beat colors
+
+put mark on chart
+
+pNN50 analysis
+
+pause/resume
+
+autocorrelation analysis at lags to 8
+
+beat syndication
+    outbound: argv.posturl: post every beat to this url
+    inbound: POST /beat/<beat_duration> to receive syndicated beats
+
+bug: after saving an image, the page breaks inside highcharts
+bug: uses highcharts proxy for image saving, so saved images are not private
+
+add audio on/off
+consider audio volume
+
+connect and test auth
+electron app
+
+---
+3d plot of first and second lags
+
+---
+display ellipse around 80% of points
+
+display boundaries of clusters
+
+---
+histogram of beat durations?

@@ -1,0 +1,112 @@
+Ectopy Hardware Setup
+
+---
+Required Hardware
+
+- A computer to run the analysis software
+
+- Arduino Uno or equivalent to capture sensor input
+    https://www.adafruit.com/products/50
+
+- Pulse Sensor
+    The less smart the better; expensive FDA approved units seem to
+    filter out some of my ectopic beats; this one worked for me:
+    https://www.amazon.com/gp/product/B01CPP4QM0/ref=oh_aui_search_detailpage?ie=UTF8&psc=1
+
+---
+Setup
+
+The steps in this section only need to be done once:
+
+1. Install Arduino IDE Software on computer
+    Download and install from http://arduino.cc
+
+2. Configure and test the Arduino IDE software
+    Set the board type and port in Tools -> Board and -> Port
+    Upload a simple "blink" sketch from File -> Examples -> 01.Basics -> Blink
+        to make sure the connection is good and the board and upload
+        process are working
+
+3. Use Arduino IDE to install heartbeat-detector.ino on Arduino
+    Open heartbeat-detector.ino in an editor
+    Copy all the text
+    Open a new file in the Arduino IDE (File -> New)
+    Paste in all the text
+    File -> Upload
+
+4. Connect sensor to Arduino
+    This is best done with the Arduino powered off
+    - black wire to Ground (GND)
+    - red wire to +5 Volts (+5)
+    - sense wire to analog input pin 1 (A1)
+
+5. Test Sensor
+    Put the sensor on your finger with the Arduino powered on,
+    and the board should flash an LED with your heartbeat
+
+6. Install node.js to run the ectopy.js software
+    Download and install procedure at http://nodejs.org
+
+7. Download the ectopy.js software from Github
+    Browse to https://github.com/billroy/ectopy
+    Click Download
+    Unzip the downloaded file; it will produce a folder named "ectopy"
+
+8. In a Terminal window, install the dependencies of ectopy.js
+    cd ectopy
+    npm install
+
+---
+Running the program
+
+1. In a Terminal window, run ectopy.js
+    cd ectopy
+    node ectopy.js
+
+    (When you're done you can stop the program with Control-C)
+
+2. Open a browser to see the application
+    Open a browser to http://localhost:3000
+
+3. Put the sensor on your finger and adjust until it's producing pulses
+    I find it helps to have a pulse-ox on another finger to make sure
+    the beats are correct
+
+---
+About the display
+
+The graph is a Poincare phase plot of the R-R interval (what a layman calls
+the heartbeat) lagged against itself with a delay of one beat.
+
+A short beat like a PVC will appear as a dot to the left of the main cluster,
+while a longer beat like an escape beat will appear as a dot to the right
+of the main cluster.
+
+It is possible to observe trigeminy and quadrigeminy patterns by following
+the connections between successive beats on the graph.
+
+Beats are color-coded based on the difference between the duration of this
+beat and the previous one.
+
+    green:  < 50ms
+    orange: > 50 ms and < 100ms
+    red:    > 100ms and < 200ms
+    purple: > 200ms
+
+---
+Using Ectopy
+
+- put the sensor on and fiddle it until the data stream looks good
+- click the 'clear' button to start a new chart
+- accumulate 100 beats or so
+- use "mark" to add a comment to identify the chart
+- take a screenshot
+
+---
+Other Facilities
+
+The program writes every heartbeat it receives to a file named XXX.txt in
+the ectopy directory, for future reference.
+
+In the More... menu, the Import and Export functions let you import and export
+beat sessions in text format.

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Copyright 2016 by Bill Roy -->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>ectopy</title>
+
+    <script src='https://code.jquery.com/jquery-2.2.0.min.js' type='text/javascript'></script>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.3/toastr.min.js' type='text/javascript'></script>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.3/toastr.css' rel='stylesheet' type='text/css'/>
+
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.js' type='text/javascript'></script>
+
+    <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
+
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+
+    <link href='/css/main.css' rel='stylesheet' type='text/css'>
+
+    <script src='/socket.io/socket.io.js' type='text/javascript'></script>
+    <script src='/js/pushit.js' type='text/javascript'></script>
+    <script src='/js/beeper.js' type='text/javascript'></script>
+
+</head>
+<body>
+
+<script type='text/javascript'>
+
+var beats = [];
+var beat_total = 0;
+var mean_beat = 0;
+var bpm = 0;
+var series;     // highcharts series handle for addPoint calls
+var axis_max = 2400;
+var lag = 1;
+
+// TODO: this doesn't work, so we refresh the whole page
+function resetWorkspace() {
+    beats = [];
+    beat_total = 0;
+    bpm = 0;
+    series.setData([], true);
+    initChart();
+    showInfo('Reset!');
+}
+
+// via https://github.com/juliangruber/binary-shannon-entropy/blob/master/index.js
+function calculateEntropy(data) {
+    var H = 0;
+    start = 0;
+    end = data.length;
+    var onebycount = 1 / (end - start);
+    var keys = [];
+    var C = {};
+    var val;
+
+    for (var i = start; i < end; i++) {
+        val = data[i];
+        if (typeof C[val] == 'undefined') {
+            keys.push(val);
+            C[val] = onebycount;
+        }
+        else C[val] += onebycount;
+    }
+
+    for (var i = 0; i < keys.length; i++) {
+        H += C[keys[i]] * Math.log(C[keys[i]]);
+    }
+
+    return -H / Math.LN2;
+}
+
+function calculateStandardDeviation() {
+    if (beats.length < 1) return 0;
+    var ssd = 0;
+    beats.forEach(function(beat) { ssd += ((beat-mean_beat) * (beat-mean_beat)); });
+    return Math.sqrt(ssd / beats.length);
+}
+
+function addBeat(beat) {
+
+    if (beat > axis_max) return;
+    if (beat < 0) return;
+
+    beeper.beep();
+
+    if (beats.length > lag) {
+        var diff = Math.abs(beats[beats.length - lag] - beat);
+        var color = 'green';
+        if (diff >= 50) color = 'orange';
+        if (diff >= 100) color = 'red';
+        if (diff >= 200) color = 'purple';
+        series.addPoint({x:beat, y:beats[beats.length - lag], color: color});
+    }
+
+    beats.push(beat);
+    beat_total += beat;
+    mean_beat = beat_total / beats.length
+    bpm = Math.floor(60000 / mean_beat);
+
+    $('#beatcount').text('n: ' + beats.length);
+    $('#bpm').text('bpm: ' + bpm);
+    $('#mean').text('mean: ' + mean_beat.toFixed(0));
+    $('#lastbeat').text('last: ' + beat + 'ms');
+    $('#standarddeviation').text('sd: ' + calculateStandardDeviation().toFixed(0));
+    $('#entropy').text('entropy: ' + calculateEntropy(beats).toFixed(2));
+    $('#heart-icon').removeClass('glyphicon-heart-empty').addClass('glyphicon-heart');
+    setTimeout(function() {
+        $('#heart-icon').removeClass('glyphicon-heart').addClass('glyphicon-heart-empty');
+    }, 100);
+}
+
+function exportBeats() {
+    prompt('Copy the beat data from the text box.', JSON.stringify(beats));
+}
+
+var beat_queue = [];
+
+function simulateBeats() {
+    if (!beat_queue.length) return;
+    const beat = beat_queue.shift();
+    addBeat(beat);
+    if (beat_queue.length) setTimeout(simulateBeats, beat);
+}
+
+function importBeats() {
+    var raw_beats = prompt('Enter beat data in JSON format like [901,897,923...]:', '');
+    if (!raw_beats) return;
+    if (raw_beats[0] == '[') {
+        var input_beats = JSON.parse(raw_beats);
+        console.log('JSON input:', input_beats);
+        input_beats.forEach(function(beat) { beat_queue.push(beat); });
+        simulateBeats();
+    }
+    else {
+        var input_lines = raw_beats.split('\n');
+        console.log('list input:', input_lines);
+        input_lines.forEach(function(line) {
+            var beat;
+            if (line.indexOf('.') < 0) beat = parseInt(line);
+            else beat = parseInt((1000 * parseFloat(line)).toFixed(0));
+            if (isNaN(beat)) return;
+            beat_queue.push(beat);
+        });
+        simulateBeats();
+    }
+    showInfo('Simulating', beat_queue.length, 'beats');
+}
+
+
+function adjustWorkspaceSize() {
+    var windowHeight = $(window).height();
+    var footer = $('#footer');
+    var excess = footer.position().top + footer.height() - windowHeight;
+    var workspaceHeight = $('#workspace').height();
+    var newHeight = workspaceHeight - excess;
+    $('#workspace').height(newHeight);
+    $('#workspace').width(newHeight + 175);
+}
+
+function showGithub() {
+    window.open('https://github.com/billroy/ectopy');
+}
+
+// Toastr
+toastr.options = {
+    "closeButton": false,
+    "debug": false,
+    "newestOnTop": false,
+    "progressBar": false,
+    "positionClass": "toast-top-right",
+    "preventDuplicates": false,
+    "onclick": null,
+    "showDuration": "300",
+    "hideDuration": "1000",
+    "timeOut": "5000",
+    "extendedTimeOut": "1000",
+    "showEasing": "swing",
+    "hideEasing": "linear",
+    "showMethod": "fadeIn",
+    "hideMethod": "fadeOut"
+};
+function showError(msg) { toastr.error(msg); }
+function showWarning(msg) { toastr.warning(msg); }
+function showInfo(msg) { toastr.info(msg); }
+
+//
+// highcharts setup
+//
+var chart;      // global chart handle
+
+function initChart() {
+    // phase chart setup
+    Highcharts.setOptions({global: {useUTC: false}});
+
+    //var chart = $('#chart').highcharts({
+    chart = Highcharts.chart('chart', {
+        chart: {
+            type: 'scatter',
+            zoomType: 'xy',
+            animation: Highcharts.svg, // don't animate in old IE
+            marginRight: 10,
+            events: {
+                load: function () {
+                    // set up the updating of the chart on new data
+                    series = this.series[0];
+                    console.log('load called, series:', series);
+                }
+            }
+        },
+        plotOptions: {
+            scatter: {
+                lineWidth: 1,
+                color: 'gray',
+                dashStyle: 'shortdot',
+                fillColor: 'red',
+                marker: {
+                    radius: 3
+                }
+            }
+        },
+        title: {
+            text: 'Heartbeat Phase Plot'
+        },
+        xAxis: {
+            min: 0,
+            max: axis_max,
+            title: {text: 'RR(t) ms'},
+            tickInterval: 200,
+            minorTickInterval: 100,
+            gridLineWidth: 1,
+            gridLineDashStyle: 'dash'
+        },
+        yAxis: {
+            min: 0,
+            max: axis_max,
+            title: {text: 'RR(t-1) ms'},
+            tickInterval: 200,
+            minorTickInterval: 100,
+            gridLineDashStyle: 'dash'
+        },
+        tooltip: {
+            formatter: function () {
+                return '' + this.x + ',' + this.y + ',' + (this.x-this.y);
+/*
+                return '<b>' + this.series.name + '</b><br/>' +
+                    Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x) + '<br/>' +
+                    Highcharts.numberFormat(this.y, 2);
+*/
+            }
+        },
+        legend: { enabled: false },
+        exporting: { enabled: true },
+        series: [{
+            name: 'Heartbeat Phase Plot',
+            allowPointSelect: true,
+            //color: 'green',
+            data: (function () {
+                console.log('data called');
+                return [];
+            }())
+        },{
+           name: 'x=y',
+           allowPointSelect: false,
+           data: [{x: 0, y: 0, color: 'blue'}, {x: axis_max, y: axis_max, color: 'blue'}]
+        }]
+    });
+
+    fillChartRect(chart, 0, 0, 600, 600, 'gainsboro');
+    fillChartRect(chart, 0, 0, 200, 200, 'darkgray');
+    fillChartRect(chart, 0, 1000, axis_max, axis_max, 'gainsboro');
+    fillChartRect(chart, 1000, 0, axis_max, axis_max, 'gainsboro');
+}
+
+function fillChartRect(chart, inx1, iny1, inx2, iny2, color) {
+    var x1 = chart.xAxis[0].toPixels(inx1);
+    var y1 = chart.yAxis[0].toPixels(iny1);
+    var x2 = chart.xAxis[0].toPixels(inx2);
+    var y2 = chart.yAxis[0].toPixels(iny2);
+
+    chart.renderer.rect(x1, y2, x2 - x1, y1 - y2)
+        .attr({fill: color})
+        .add();
+}
+
+function addText(chart, plotx, ploty, text, color) {
+    var screenx = chart.xAxis[0].toPixels(plotx);
+    var screeny = chart.yAxis[0].toPixels(ploty);
+    return chart.renderer.text(text, screenx, screeny)
+        .attr({fill: color, zIndex: 10})
+        .add();
+}
+
+
+$(document).ready(function() {
+
+    adjustWorkspaceSize();
+
+    $('#cmd_mark').on('click', function() {
+        var text = prompt('Mark with text:', '');
+        if (!text) return;
+        Pushit.send('mark', text);
+        addText(chart, 100, axis_max - 200, text, 'black');
+    });
+    Pushit.on('mark', function(text) {
+        addText(chart, 100, axis_max - 200, text, 'black');
+        showInfo('Marked: ' + text);
+    });
+
+    $('#cmd_clear').on('click', function() {
+        Pushit.send('mark', 'clear');
+        window.setTimeout(function() {
+            document.location.href = document.location.href;
+        }, 100);
+    });
+
+    Pushit.on('beat', function(beat) {
+        //console.log('beat:', beat);
+        addBeat(beat);
+    });
+
+    initChart();
+
+    adjustWorkspaceSize();
+    $(window).resize(adjustWorkspaceSize);
+});
+
+</script>
+
+
+<!-- Page structure -->
+<div class='container'>
+    <div class='row'>
+        <div id='header' class='col-lg-12 header'>
+            <span style='float:left'><a href='https://github.com/billroy/ectopy' target = '_blank'>&bull;&nbsp;ectopy</a></span>
+            <span id='origin'></span>
+            <span id='header-right' style='float:right'></span>
+        </div>
+    </div>
+
+    <div class='row' id='commands' class='commands'>
+        <div id='chart-header' class='col-lg-12'>
+
+            <span id='heart-icon' class="glyphicon glyphicon-heart" aria-hidden="true"></span>
+            <span id='beatcount' class='indicator'>n: 0</span>
+            <span id='bpm' class='indicator'>bpm: 0</span>
+            <span id='mean', class='indicator'>mean: 0</span>
+            <span id='lastbeat' class='indicator'>last: 0</span>
+            <span id='standarddeviation' class='indicator'>sd: 0</span>
+            <span id='entropy' class='indicator'>entropy: 0</span>
+
+            <div class="btn-group" style='float:right'>
+                <button id='cmd_mark' type="button" class="btn btn-info btn-sm" aria-label="mark">
+                    <span id='heart-icon' class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                    <span>mark</span>
+                </button>
+                <button id='cmd_clear' type="button" class="btn btn-danger btn-sm" aria-label="clear">
+                    <span id='heart-icon' class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                    <span>clear</span>
+                </button>
+                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                more... <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a href='javascript: exportBeats();'>export beats</a></li>
+                    <li><a href='javascript: importBeats();'>import beats</a></li>
+                    <li><a href='javascript: showGithub();'>github</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class='row' id='workspace'>
+        <div id='chart' class='col-lg-12 chart'></div>
+    </div>
+
+    <div id='footer' class='col-lg-12 footer'>
+        <center><span>&copy; 2016 by Bill Roy</span></center>
+    </div>
+
+</div>
+</body>
+</html>
