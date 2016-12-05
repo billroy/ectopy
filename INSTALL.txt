@@ -22,35 +22,39 @@ The steps in this section only need to be done once:
     Download and install from http://arduino.cc
 
 2. Configure and test the Arduino IDE software
-    Set the board type and port in Tools -> Board and -> Port
+    Connect the Arduino to the computer with the USB cable
+    Set the board type in Tools -> Board
+    Set the processor type in Tools -> Processor
+    Select the appropriate port in Tools -> Port
     Upload a simple "blink" sketch from File -> Examples -> 01.Basics -> Blink
         to make sure the connection is good and the board and upload
         process are working
 
-3. Use Arduino IDE to install heartbeat-detector.ino on Arduino
-    Open heartbeat-detector.ino in an editor
-    Copy all the text
-    Open a new file in the Arduino IDE (File -> New)
-    Paste in all the text
-    File -> Upload
-
-4. Connect sensor to Arduino
-    This is best done with the Arduino powered off
-    - black wire to Ground (GND)
-    - red wire to +5 Volts (+5 or VCC); 3.3 Volts (+3.3 or VCC) also works
-    - purple sense wire to analog input pin 0 (A0)
-
-5. Test Sensor
-    Put the sensor on your finger with the Arduino powered on,
-    and the board should flash an LED with your heartbeat
-
-6. Install node.js to run the ectopy.js software
-    Download and install procedure at http://nodejs.org
-
-7. Download the ectopy.js software from Github
+3. Download the ectopy.js software from Github
     Browse to https://github.com/billroy/ectopy
     Click Download
     Unzip the downloaded file; it will produce a folder named "ectopy"
+
+4. Use Arduino IDE to install ectopy/heartbeat-detector.ino on Arduino
+    Open ectopy/heartbeat-detector.ino in an editor
+    Copy all the text
+    Open a new file in the Arduino IDE (File -> New)
+    Paste in all the text from ectopy/heartbeat-detector.ino
+    File -> Upload
+
+5. Connect sensor to Arduino
+    This is best done with the Arduino powered off
+    - black wire to Ground (GND)
+    - red wire to +5 Volts (+5 or VCC);
+        3.3 Volts (+3.3 or VCC) also works on a 3.3 volt Arduino
+    - purple sense wire to analog input pin 0 (A0)
+
+6. Test Sensor
+    Put the sensor on your finger with the Arduino powered on,
+    and the board should flash an LED with your heartbeat
+
+7. Install node.js to run the ectopy.js software
+    Download and install procedure at http://nodejs.org
 
 8. In a Terminal window, install the dependencies of ectopy.js
     cd ectopy
