@@ -38,7 +38,7 @@ The steps in this section only need to be done once:
     This is best done with the Arduino powered off
     - black wire to Ground (GND)
     - red wire to +5 Volts (+5)
-    - sense wire to analog input pin 1 (A1)
+    - sense wire to analog input pin 0 (A0)
 
 5. Test Sensor
     Put the sensor on your finger with the Arduino powered on,
@@ -105,8 +105,8 @@ Using Ectopy
 ---
 Other Facilities
 
-The program writes every heartbeat it receives to a file named XXX.txt in
-the ectopy directory, for future reference.
+The program writes every heartbeat it receives to a file named beats.log in
+the ectopy directory, for future analysis.
 
 In the More... menu, the Import and Export functions let you import and export
 beat sessions in text format.

@@ -1,6 +1,6 @@
 // ectopy.js
 //
-// Copyright 2016 by Bill Roy - see LICENSE file
+// Copyright 2016 by Bill Roy - MIT license - see LICENSE file
 //
 
 function env(key, default_value) {
